@@ -17,7 +17,7 @@ export class AdminInitializer {
 
       // Get database instance (this will initialize supabase)
       const db = getDb();
-      const { supabase } = await import('../database');
+      const { supabase } = await import('../database.js');
 
       // Check if admin already exists
       const { data: existingAdmins, error: checkError } = await supabase

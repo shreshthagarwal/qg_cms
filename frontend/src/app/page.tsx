@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -26,7 +26,7 @@ import {
 } from "@mui/icons-material";
 import { ThemeProvider } from "../components/theme";
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
@@ -201,5 +201,17 @@ export default function Home() {
         </Container>
       </Box>
     </ThemeProvider>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
