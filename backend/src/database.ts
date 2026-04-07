@@ -2003,7 +2003,7 @@ export function getDb() {
       async getAllAnnouncements() {
         const { data, error } = await client
           .from('announcements')
-          .select('*')
+          .select('*, creator:created_by(first_name, last_name, email)')
           .order('created_at', { ascending: false });
         
         if (error) throw error;

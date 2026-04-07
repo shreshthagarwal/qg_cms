@@ -42,155 +42,15 @@ import {
   MenuBook,
   Assessment,
   ArrowForward,
-  NotificationImportant,
-  NotificationsNone,
-  Quiz,
-  Grade,
   EventAvailable,
-  NewReleases,
-  Timer,
   Feedback,
   Send,
-  Celebration,
 } from "@mui/icons-material";
 import { ThemeProvider } from "../../components/theme";
-import { format, subDays, isToday, isPast, isValid } from "date-fns";
+import { format, isValid } from "date-fns";
 import { LineChart } from "@mui/x-charts/LineChart";
 import { PieChart } from "@mui/x-charts/PieChart";
 import { BarChart } from "@mui/x-charts/BarChart";
-
-// Notifications Component
-interface NotificationsComponentProps {
-  notifications: Notification[];
-  onNotificationClick: (notification: Notification) => void;
-  unreadCount: number;
-}
-
-const NotificationsComponent: React.FC<NotificationsComponentProps> = ({ 
-  notifications, 
-  onNotificationClick, 
-  unreadCount 
-}) => {
-  const [showNotifications, setShowNotifications] = useState(false);
-  const { data: session } = useSession();
-  const router = useRouter();
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'quiz': return <Quiz />;
-      case 'assignment': return <Assignment />;
-      case 'grade': return <Grade />;
-      case 'deadline': return <Timer />;
-      case 'announcement': return <NewReleases />;
-      case 'birthday': return <Celebration />;
-      default: return <NotificationsNone />;
-    }
-  };
-
-  const getNotificationColor = (type: string) => {
-    switch (type) {
-      case 'quiz': return 'primary';
-      case 'assignment': return 'info';
-      case 'grade': return 'success';
-      case 'deadline': return 'warning';
-      case 'announcement': return 'secondary';
-      case 'birthday': return 'error';
-      default: return 'default';
-    }
-  };
-
-  return (
-    <Box position="relative">
-      <Tooltip title="Notifications">
-        <IconButton onClick={() => setShowNotifications(!showNotifications)}>
-          <Badge badgeContent={unreadCount} color="error">
-            {unreadCount > 0 ? <NotificationImportant /> : <NotificationsNone />}
-          </Badge>
-        </IconButton>
-      </Tooltip>
-      
-      {/* Notifications Dropdown */}
-      {showNotifications && (
-        <Paper
-          sx={{
-            position: 'absolute',
-            right: 0,
-            top: '100%',
-            mt: 1,
-            width: 360,
-            maxHeight: 400,
-            overflow: 'auto',
-            zIndex: 1000,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-          }}
-        >
-          {notifications.length > 0 ? (
-            <>
-              <Box p={2} borderBottom="1px solid #e5e7eb">
-                <Typography variant="subtitle2" fontWeight={600}>
-                  Notifications ({notifications.filter(n => !n.read).length} unread)
-                </Typography>
-              </Box>
-              <List>
-                {notifications.slice(0, 5).map((notification) => (
-                  <Box
-                    key={notification.id}
-                    onClick={() => onNotificationClick(notification)}
-                    sx={{
-                      p: 2,
-                      cursor: 'pointer',
-                      bgcolor: notification.read ? 'transparent' : 'primary.light',
-                      '&:hover': { bgcolor: 'grey.100' },
-                      borderBottom: '1px solid #e5e7eb',
-                    }}
-                  >
-                    <Box display="flex" alignItems="flex-start" gap={2}>
-                      <Avatar sx={{ bgcolor: `${getNotificationColor(notification.type)}.light`, width: 32, height: 32 }}>
-                        {getNotificationIcon(notification.type)}
-                      </Avatar>
-                      <Box flex={1}>
-                        <Typography variant="body2" fontWeight={notification.read ? 400 : 600}>
-                          {notification.title}
-                        </Typography>
-                        <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-                          {notification.message}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {format(new Date(notification.timestamp), 'MMM d, HH:mm')}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Box>
-                ))}
-              </List>
-              <Box p={2} borderTop="1px solid #e5e7eb">
-                <Button size="small" fullWidth onClick={() => router.push('/student/notifications')}>
-                  View All Notifications
-                </Button>
-              </Box>
-            </>
-          ) : (
-            <Box p={4} textAlign="center">
-              <Typography color="text.secondary">
-                No new notifications
-              </Typography>
-            </Box>
-          )}
-        </Paper>
-      )}
-    </Box>
-  );
-};
-
-interface Notification {
-  id: string;
-  type: 'quiz' | 'assignment' | 'grade' | 'deadline' | 'announcement' | 'birthday';
-  title: string;
-  message: string;
-  timestamp: string;
-  read: boolean;
-  actionUrl?: string | null;
-}
 
 interface DashboardStats {
   attendanceRate: number;
@@ -201,16 +61,6 @@ interface DashboardStats {
   tradingReports: number;
   coursesEnrolled: number;
   upcomingDeadlines: number;
-  unreadNotifications: number;
-}
-
-interface RecentActivity {
-  id: string;
-  type: string;
-  title: string;
-  date: string;
-  icon: any;
-  description?: string;
 }
 
 export default function StudentDashboard() {
@@ -227,12 +77,8 @@ export default function StudentDashboard() {
     tradingReports: 0,
     coursesEnrolled: 0,
     upcomingDeadlines: 0,
-    unreadNotifications: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
@@ -242,124 +88,8 @@ export default function StudentDashboard() {
     if (session?.user?.id) {
       fetchProfile();
       fetchStats();
-      fetchRecentActivity();
-      fetchNotifications();
     }
   }, [session]);
-
-  const fetchNotifications = async () => {
-    try {
-      const token = (session?.user as any)?.accessToken;
-      
-      // Fetch assignments for deadline notifications
-      const assignmentsRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/assignments/student`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const assignmentsData = assignmentsRes.ok ? await assignmentsRes.json() : [];
-      
-      // Fetch quizzes for new quiz notifications
-      const quizzesRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/quizzes/active`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const quizzesData = quizzesRes.ok ? await quizzesRes.json() : [];
-      
-      // Fetch recent grades
-      const gradesRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/evaluation/dashboard/${session?.user?.id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const gradesData = gradesRes.ok ? await gradesRes.json() : [];
-      
-      // Generate notifications from data
-      const notificationsList: Notification[] = [];
-      
-      // Birthday notification
-      if (profile?.dateOfBirth) {
-        const today = new Date();
-        const birthday = new Date(profile.dateOfBirth);
-        const isTodayBirthday = 
-          today.getDate() === birthday.getDate() && 
-          today.getMonth() === birthday.getMonth();
-          
-        if (isTodayBirthday) {
-          notificationsList.push({
-            id: `birthday-${profile.id}`,
-            type: 'birthday',
-            title: '🎉 Happy Birthday!',
-            message: `Wishing you a wonderful birthday, ${profile.firstname || 'Student'}! 🎂`,
-            timestamp: today.toISOString(),
-            read: false,
-            actionUrl: null,
-          });
-        }
-      }
-      
-      // Assignment deadline notifications
-      assignmentsData.forEach((assignment: any) => {
-        if (!assignment.submitted) {
-          const deadline = new Date(assignment.deadline);
-          const daysUntil = Math.ceil((deadline.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-          
-          if (daysUntil <= 3 && daysUntil >= 0) {
-            notificationsList.push({
-              id: `deadline-${assignment.id}`,
-              type: 'deadline',
-              title: `Assignment Deadline Approaching`,
-              message: `"${assignment.title}" is due in ${daysUntil} day${daysUntil === 1 ? '' : 's'}`,
-              timestamp: assignment.deadline,
-              read: false,
-              actionUrl: '/student/assignments',
-            });
-          }
-        }
-      });
-      
-      // New quiz notifications (quizzes from last 2 days)
-      const twoDaysAgo = subDays(new Date(), 2);
-      quizzesData.forEach((quiz: any) => {
-        const quizDate = new Date(quiz.createdAt);
-        if (quizDate >= twoDaysAgo) {
-          notificationsList.push({
-            id: `quiz-${quiz.id}`,
-            type: 'quiz',
-            title: 'New Quiz Available',
-            message: `"${quiz.title}" is now available`,
-            timestamp: quiz.createdAt,
-            read: false,
-            actionUrl: '/student/evaluation',
-          });
-        }
-      });
-      
-      // Grade notifications (from last 3 days)
-      const threeDaysAgo = subDays(new Date(), 3);
-      if (Array.isArray(gradesData)) {
-        gradesData.forEach((grade: any) => {
-          const gradeDate = new Date(grade.gradedAt);
-          if (gradeDate >= threeDaysAgo) {
-            notificationsList.push({
-              id: `grade-${grade.id}`,
-              type: 'grade',
-              title: 'Assignment Graded',
-              message: `"${grade.assignmentTitle}" - Score: ${grade.score}%`,
-              timestamp: grade.gradedAt,
-              read: false,
-              actionUrl: '/student/assignments',
-            });
-          }
-        });
-      }
-      
-      // Sort by timestamp (newest first)
-      notificationsList.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      
-      setNotifications(notificationsList);
-    } catch (err) {
-      console.error("Error fetching notifications:", err);
-    }
-  };
 
   const fetchProfile = async () => {
     try {
@@ -440,156 +170,11 @@ export default function StudentDashboard() {
         tradingReports: tradingData.length,
         coursesEnrolled: 1,
         upcomingDeadlines,
-        unreadNotifications: notifications.filter(n => !n.read).length,
       });
     } catch (err) {
       console.error("Error fetching stats:", err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchRecentActivity = async () => {
-    try {
-      const token = (session?.user as any)?.accessToken;
-      
-      // Fetch recent assignments
-      const assignmentsRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/assignments/student`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const assignmentsData = assignmentsRes.ok ? await assignmentsRes.json() : [];
-      
-      // Fetch recent attendance
-      const attendanceRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/attendance/student`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const attendanceData = attendanceRes.ok ? await attendanceRes.json() : [];
-      
-      // Fetch recent quiz results
-      const quizRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/quizzes/active`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const quizData = quizRes.ok ? await quizRes.json() : [];
-      
-      // Fetch recent trading reports
-      const tradingRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/trading/reports`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const tradingData = tradingRes.ok ? await tradingRes.json() : [];
-      
-      const activity: RecentActivity[] = [];
-      
-      // Add assignment activities
-      assignmentsData.forEach((assignment: any) => {
-        const assignmentDate = new Date(assignment.updatedAt);
-        if (isValid(assignmentDate)) {
-          activity.push({
-            id: `assignment-${assignment.id}`,
-            type: 'assignment',
-            title: assignment.submitted ? `Submitted: ${assignment.title}` : `Started: ${assignment.title}`,
-            date: format(assignmentDate, 'MMM d, yyyy'),
-            icon: Assignment,
-            description: assignment.submitted ? 'Assignment submitted successfully' : 'Assignment in progress',
-          });
-        }
-      });
-      
-      // Add attendance activities
-      attendanceData.forEach((attendance: any) => {
-        const attendanceDate = new Date(attendance.date);
-        if (isValid(attendanceDate)) {
-          activity.push({
-            id: `attendance-${attendance.id}`,
-            type: 'attendance',
-            title: `Marked ${attendance.status}`,
-            date: format(attendanceDate, 'MMM d, yyyy'),
-            icon: attendance.status === 'present' ? CheckCircle : Warning,
-            description: `Attendance recorded for ${format(attendanceDate, 'EEEE')}`,
-          });
-        }
-      });
-      
-      // Add quiz activities
-      quizData.forEach((quiz: any) => {
-        const quizDate = new Date(quiz.completedAt);
-        if (isValid(quizDate)) {
-          activity.push({
-            id: `quiz-${quiz.id}`,
-            type: 'quiz',
-            title: `Quiz completed: ${quiz.title}`,
-            date: format(quizDate, 'MMM d, yyyy'),
-            icon: Assessment,
-            description: `Score: ${quiz.score}%`,
-          });
-        }
-      });
-      
-      // Add trading report activities
-      tradingData.forEach((report: any) => {
-        const reportDate = new Date(report.submittedAt);
-        if (isValid(reportDate)) {
-          activity.push({
-            id: `trading-${report.id}`,
-            type: 'trading',
-            title: `Trading report submitted`,
-            date: format(reportDate, 'MMM d, yyyy'),
-            icon: TrendingUp,
-            description: `P&L: ₹${report.dailyPnL}`,
-          });
-        }
-      });
-      
-      // Sort by date (most recent first) and take last 10
-      activity.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      setRecentActivity(activity.slice(0, 10));
-    } catch (err) {
-      console.error("Error fetching recent activity:", err);
-      // Fallback to mock data
-      setRecentActivity([
-        { id: "1", type: "assignment", title: "Assignment 1 submitted", date: "2 hours ago", icon: Assignment, description: "Submitted successfully" },
-        { id: "2", type: "attendance", title: "Marked present today", date: "Today", icon: CheckCircle, description: "Attendance recorded" },
-        { id: "3", type: "quiz", title: "Quiz 1 completed - Score: 85%", date: "Yesterday", icon: Assessment, description: "Great performance!" },
-        { id: "4", type: "trading", title: "Trading report submitted", date: "2 days ago", icon: TrendingUp, description: "P&L: ₹2,500" },
-      ]);
-    }
-  };
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'quiz': return <Quiz />;
-      case 'assignment': return <Assignment />;
-      case 'grade': return <Grade />;
-      case 'deadline': return <Timer />;
-      case 'announcement': return <NewReleases />;
-      default: return <NotificationsNone />;
-    }
-  };
-
-  const getNotificationColor = (type: string) => {
-    switch (type) {
-      case 'quiz': return 'primary';
-      case 'assignment': return 'info';
-      case 'grade': return 'success';
-      case 'deadline': return 'warning';
-      case 'announcement': return 'secondary';
-      default: return 'default';
-    }
-  };
-
-  const markNotificationAsRead = (notificationId: string) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
-    );
-  };
-
-  const handleNotificationClick = (notification: Notification) => {
-    markNotificationAsRead(notification.id);
-    if (notification.actionUrl) {
-      router.push(notification.actionUrl);
     }
   };
 
@@ -845,41 +430,6 @@ export default function StudentDashboard() {
             </Card>
           </Grid>
         </Grid>
-
-        {/* Notifications and Updates */}
-        <Card sx={{ mb: 4 }}>
-          <CardContent>
-            <Typography variant="h6" fontWeight={600} mb={3}>
-              Notifications & Recent Updates
-            </Typography>
-            <Grid container spacing={2}>
-              {notifications.slice(0, 4).map((notification, index) => (
-                <Grid size={{ xs: 12, sm: 6 }} key={index}>
-                  <Box 
-                    sx={{
-                      p: 2,
-                      borderRadius: 2,
-                      bgcolor: notification.type === 'deadline' ? 'warning.light' : 
-                               notification.type === 'grade' ? 'success.light' : 
-                               notification.type === 'birthday' ? 'primary.light' : 'grey.100',
-                      border: '1px solid',
-                      borderColor: notification.type === 'deadline' ? 'warning.main' : 
-                                notification.type === 'grade' ? 'success.main' : 
-                                notification.type === 'birthday' ? 'primary.main' : 'grey.300'
-                    }}
-                  >
-                    <Typography variant="body2" fontWeight={500} color="text.primary">
-                      {notification.title}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {notification.message}
-                    </Typography>
-                  </Box>
-                </Grid>
-              ))}
-            </Grid>
-          </CardContent>
-        </Card>
 
         {/* Floating Feedback Button - Hidden during quizzes */}
         {!window.location.pathname.includes('/evaluation') && !window.location.pathname.includes('/quiz') && (
