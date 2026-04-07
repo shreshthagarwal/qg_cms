@@ -34,6 +34,7 @@ import {
   Menu as MenuIcon,
   ChevronLeft,
   Feedback,
+  NotificationImportant,
 } from "@mui/icons-material";
 import { ThemeProvider } from "../../components/theme";
 
@@ -49,6 +50,7 @@ const menuItems = [
   { path: "/admin/trading", label: "QuantLive Trading", icon: BarChart },
   { path: "/admin/evaluation", label: "Evaluations", icon: Assessment },
   { path: "/admin/feedback", label: "Student Feedback", icon: Feedback },
+  { path: "/admin/announcements", label: "Announcements", icon: NotificationImportant },
 ];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
@@ -68,7 +70,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   if (status === "unauthenticated" || session?.user?.role !== "ADMIN") {
-    router.push("/login");
+    router.push("/");
     return null;
   }
 

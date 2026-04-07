@@ -12,7 +12,8 @@ const authenticate = (req, res, next) => {
         return res.status(401).json({ error: 'Access denied. No token provided.' });
     }
     try {
-        const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+        const jwtSecret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || 'fallback_secret';
+        const decoded = jsonwebtoken_1.default.verify(token, jwtSecret);
         req.user = decoded;
         console.log('Auth success:', decoded.id, decoded.role);
         next();

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import AnnouncementComponent from "../../components/AnnouncementComponent";
 import {
   Box,
   Card,
@@ -41,7 +42,7 @@ import {
   MenuBook,
   Assessment,
   ArrowForward,
-  Notifications,
+  NotificationImportant,
   NotificationsNone,
   Quiz,
   Grade,
@@ -82,7 +83,7 @@ const NotificationsComponent: React.FC<NotificationsComponentProps> = ({
       case 'deadline': return <Timer />;
       case 'announcement': return <NewReleases />;
       case 'birthday': return <Celebration />;
-      default: return <Notifications />;
+      default: return <NotificationsNone />;
     }
   };
 
@@ -103,7 +104,7 @@ const NotificationsComponent: React.FC<NotificationsComponentProps> = ({
       <Tooltip title="Notifications">
         <IconButton onClick={() => setShowNotifications(!showNotifications)}>
           <Badge badgeContent={unreadCount} color="error">
-            {unreadCount > 0 ? <Notifications /> : <NotificationsNone />}
+            {unreadCount > 0 ? <NotificationImportant /> : <NotificationsNone />}
           </Badge>
         </IconButton>
       </Tooltip>
@@ -216,6 +217,7 @@ export default function StudentDashboard() {
   const { data: session } = useSession();
   const router = useRouter();
   const [profile, setProfile] = useState<any>(null);
+  const [unreadAnnouncements, setUnreadAnnouncements] = useState(0);
   const [stats, setStats] = useState<DashboardStats>({
     attendanceRate: 0,
     assignmentsPending: 0,
@@ -563,7 +565,7 @@ export default function StudentDashboard() {
       case 'grade': return <Grade />;
       case 'deadline': return <Timer />;
       case 'announcement': return <NewReleases />;
-      default: return <Notifications />;
+      default: return <NotificationsNone />;
     }
   };
 
@@ -720,6 +722,14 @@ export default function StudentDashboard() {
               </Box>
             </Box>
           </Box>
+        </Box>
+
+        {/* Announcements Section */}
+        <Box mb={4}>
+          <AnnouncementComponent onUnreadCountChange={(count) => {
+            // Update sidebar notification badge
+            setUnreadAnnouncements(count);
+          }} />
         </Box>
 
         {/* Stats Grid */}

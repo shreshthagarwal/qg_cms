@@ -213,6 +213,47 @@ router.post('/:id/reset-password', authenticate, authorizeAdmin, async (req: Aut
   }
 });
 
+// Student: Change Password
+router.post('/change-password', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user?.id;
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current password and new password are required' });
+    }
+    
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters' });
+    }
+    
+    const db = getDb();
+    
+    // Get current user to verify current password
+    const currentUser = await db.findStudentById(userId);
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Verify current password (compare with stored hash)
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, currentUser.password);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    }
+    
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update password
+    await db.updateUser(userId, { password: hashedNewPassword });
+    
+    res.json({ message: 'Password changed successfully' });
+  } catch (error: any) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
+});
+
 // Admin: Delete student
 router.delete('/:id', authenticate, authorizeAdmin, async (req: AuthRequest, res) => {
   try {

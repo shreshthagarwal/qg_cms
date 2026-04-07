@@ -11,6 +11,7 @@ import quizRoutes from './routes/quizzes';
 import assignmentRoutes from './routes/assignments';
 import tradingRoutes from './routes/trading';
 import feedbackRoutes from './routes/feedback';
+import announcementRoutes from './routes/announcements';
 import { AdminInitializer } from './services/adminInitializer';
 
 dotenv.config();
@@ -26,16 +27,6 @@ process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
   // Don't exit the process
 });
-
-// Validate environment variables
-const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'ADMIN_EMAIL', 'ADMIN_PASSWORD'];
-const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
-
-if (missingVars.length > 0) {
-  console.error('❌ Missing required environment variables:');
-  missingVars.forEach(varName => console.error(`   - ${varName}`));
-  process.exit(1);
-}
 
 // Initialize admin user on startup (non-blocking)
 AdminInitializer.initializeAdmin().catch(error => {
@@ -79,6 +70,7 @@ app.use('/api/quizzes', quizRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/trading', tradingRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/announcements', announcementRoutes);
 
 const PORT = process.env.PORT || 5000;
 

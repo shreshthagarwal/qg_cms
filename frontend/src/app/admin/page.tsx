@@ -25,7 +25,7 @@ import {
   CalendarMonth,
   Assignment,
   Description,
-  Notifications,
+  NotificationImportant,
   Warning,
   CheckCircle,
 } from "@mui/icons-material";
@@ -497,10 +497,10 @@ export default function AdminDashboard() {
                       fullWidth
                       variant="outlined"
                       startIcon={<AttachMoney />}
-                      onClick={() => router.push("/admin/fees")}
+                      onClick={() => router.push("/admin/trading")}
                       sx={{ justifyContent: "flex-start", py: 1.5 }}
                     >
-                      Fee Management
+                      View Trading Reports
                     </Button>
                   </Grid>
                   <Grid size={{ xs: 6 }}>

@@ -44,6 +44,7 @@ import {
 import { LineChart } from "@mui/x-charts/LineChart";
 import { BarChart } from "@mui/x-charts/BarChart";
 import { ThemeProvider } from "../../../components/theme";
+import PnLLeaderboard from "../../../components/PnLLeaderboard";
 import { format, startOfWeek, addDays, isSameWeek, subWeeks } from "date-fns";
 
 interface TradingReport {
@@ -95,6 +96,9 @@ export default function StudentQuantLivePage() {
     weeklyPnL: [] as WeeklyPnL[],
   });
 
+  // Leaderboard states
+  const [leaderboardPeriod, setLeaderboardPeriod] = useState<"daily" | "weekly" | "monthly">("weekly");
+
 
   useEffect(() => {
     fetchReports();
@@ -131,10 +135,10 @@ export default function StudentQuantLivePage() {
         
         setStats({
           totalReports: mappedData.length,
-          pendingReports: mappedData.filter((r: TradingReport) => r.status === "pending").length,
-          approvedReports: mappedData.filter((r: TradingReport) => r.status === "approved").length,
           totalPnL,
           weeklyPnL,
+          pendingReports: 0, // Keep for compatibility but not used
+          approvedReports: 0, // Keep for compatibility but not used
         });
       }
     } catch (err) {
@@ -363,40 +367,31 @@ export default function StudentQuantLivePage() {
 
         {/* Stats */}
         <Grid container spacing={3} mb={3}>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <StatCard
               title="Total Reports"
               value={stats.totalReports}
-              subtitle="Submitted by you"
+              subtitle="All submitted reports"
               icon={Description}
               color="primary"
             />
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <StatCard
-              title="Pending Review"
-              value={stats.pendingReports}
-              subtitle="Awaiting approval"
-              icon={Warning}
-              color="warning"
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <StatCard
-              title="Approved"
-              value={stats.approvedReports}
-              subtitle="Verified reports"
-              icon={CheckCircle}
-              color="success"
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <StatCard
               title="Net PnL"
               value={`₹${stats.totalPnL.toLocaleString()}`}
               subtitle="Total profit/loss"
               icon={stats.totalPnL >= 0 ? TrendingUp : TrendingDown}
               color={stats.totalPnL >= 0 ? "success" : "error"}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <StatCard
+              title="Win Rate"
+              value={stats.totalReports > 0 ? `${Math.round((reports.filter(r => r.dailyPnL > 0).length / stats.totalReports) * 100)}%` : 'N/A'}
+              subtitle="Profitable days"
+              icon={CheckCircle}
+              color="primary"
             />
           </Grid>
         </Grid>
@@ -458,6 +453,22 @@ export default function StudentQuantLivePage() {
                     height={320}
                   />
                 </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+
+        {/* P&L Leaderboard */}
+        <Grid container spacing={3} mb={3}>
+          <Grid size={{ xs: 12 }}>
+            <Card>
+              <CardContent sx={{ p: 3 }}>
+                <PnLLeaderboard
+                  reports={reports}
+                  students={[{ id: session?.user?.id || '', firstname: session?.user?.name?.split(' ')[0] || 'Student', lastname: session?.user?.name?.split(' ').slice(1).join(' ') || '', email: session?.user?.email || '' }]}
+                  period={leaderboardPeriod}
+                  onPeriodChange={setLeaderboardPeriod}
+                />
               </CardContent>
             </Card>
           </Grid>

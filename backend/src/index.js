@@ -16,6 +16,7 @@ const quizzes_1 = __importDefault(require("./routes/quizzes"));
 const assignments_1 = __importDefault(require("./routes/assignments"));
 const trading_1 = __importDefault(require("./routes/trading"));
 const feedback_1 = __importDefault(require("./routes/feedback"));
+const announcements_1 = __importDefault(require("./routes/announcements"));
 const adminInitializer_1 = require("./services/adminInitializer");
 dotenv_1.default.config();
 // Handle unhandled promise rejections
@@ -28,14 +29,6 @@ process.on('uncaughtException', (error) => {
     console.error('Uncaught Exception:', error);
     // Don't exit the process
 });
-// Validate environment variables
-const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'ADMIN_EMAIL', 'ADMIN_PASSWORD'];
-const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
-if (missingVars.length > 0) {
-    console.error('❌ Missing required environment variables:');
-    missingVars.forEach(varName => console.error(`   - ${varName}`));
-    process.exit(1);
-}
 // Initialize admin user on startup (non-blocking)
 adminInitializer_1.AdminInitializer.initializeAdmin().catch(error => {
     console.error('Admin initialization failed:', error);
@@ -43,7 +36,22 @@ adminInitializer_1.AdminInitializer.initializeAdmin().catch(error => {
 });
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: function (origin, callback) {
+        const allowedOrigins = [
+            process.env.FRONTEND_URL,
+            'http://localhost:3000',
+            'https://qg-cms.vercel.app'
+        ].filter(Boolean);
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin)
+            return callback(null, true);
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        }
+        else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -60,6 +68,7 @@ app.use('/api/quizzes', quizzes_1.default);
 app.use('/api/assignments', assignments_1.default);
 app.use('/api/trading', trading_1.default);
 app.use('/api/feedback', feedback_1.default);
+app.use('/api/announcements', announcements_1.default);
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

@@ -10,9 +10,6 @@ let db = null;
 // Initialize Supabase client only when needed
 function initializeSupabase() {
     if (!supabase) {
-        if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
-            throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_KEY in environment variables');
-        }
         exports.supabase = supabase = (0, supabase_js_1.createClient)(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
     }
     return supabase;
@@ -1737,10 +1734,162 @@ function getDb() {
                     .select()
                     .single();
                 if (error) {
-                    console.error('Error updating attendance:', error);
                     throw error;
                 }
                 return data;
+            },
+            // ==================== ANNOUNCEMENTS ====================
+            async createAnnouncement(announcementData) {
+                const payload = {
+                    id: announcementData.id || `announcement-${Date.now()}`,
+                    title: announcementData.title,
+                    message: announcementData.message,
+                    target_audience: announcementData.target_audience || 'all',
+                    target_student_ids: announcementData.target_student_ids || null,
+                    created_by: announcementData.created_by,
+                    created_at: announcementData.created_at || new Date().toISOString()
+                };
+                console.log('Creating announcement with payload:', payload);
+                const { data, error } = await client
+                    .from('announcements')
+                    .insert(payload)
+                    .select()
+                    .single();
+                if (error) {
+                    console.error('Supabase error creating announcement:', error);
+                    throw error;
+                }
+                console.log('Announcement created successfully:', data);
+                return data;
+            },
+            async getAllAnnouncements() {
+                const { data, error } = await client
+                    .from('announcements')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                if (error)
+                    throw error;
+                return data || [];
+            },
+            async getAnnouncementsForStudent(studentId) {
+                console.log('Getting announcements for student:', studentId);
+                // Get all announcements
+                const { data, error } = await client
+                    .from('announcements')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                if (error) {
+                    console.error('Supabase error fetching announcements:', error);
+                    throw error;
+                }
+                console.log('Total announcements in DB:', data?.length || 0);
+                console.log('Announcements data:', data);
+                // Filter in JavaScript since Supabase array containment is tricky
+                const filtered = (data || []).filter((announcement) => {
+                    const isAll = announcement.target_audience === 'all';
+                    const isSpecific = announcement.target_audience === 'specific';
+                    const hasStudentIds = announcement.target_student_ids &&
+                        Array.isArray(announcement.target_student_ids) &&
+                        announcement.target_student_ids.includes(studentId);
+                    console.log('Filtering announcement:', announcement.id, {
+                        target_audience: announcement.target_audience,
+                        target_student_ids: announcement.target_student_ids,
+                        isAll,
+                        isSpecific,
+                        hasStudentIds,
+                        shouldShow: isAll || (isSpecific && hasStudentIds)
+                    });
+                    if (isAll)
+                        return true;
+                    if (isSpecific && hasStudentIds)
+                        return true;
+                    return false;
+                });
+                console.log('Filtered announcements for student:', filtered.length);
+                return filtered;
+            },
+            async deleteAnnouncement(announcementId) {
+                const { error } = await client
+                    .from('announcements')
+                    .delete()
+                    .eq('id', announcementId);
+                if (error)
+                    throw error;
+                return true;
+            },
+            async deleteAllAnnouncements() {
+                const { error } = await client
+                    .from('announcements')
+                    .delete()
+                    .neq('id', 'fake-id'); // Delete all rows
+                if (error)
+                    throw error;
+                return true;
+            },
+            async deleteAllAnnouncementReads() {
+                const { error } = await client
+                    .from('announcement_reads')
+                    .delete()
+                    .neq('id', 'fake-id'); // Delete all rows
+                if (error)
+                    throw error;
+                return true;
+            },
+            async markAnnouncementAsRead(announcementId, studentId) {
+                const { data, error } = await client
+                    .from('announcement_reads')
+                    .insert({
+                    announcement_id: announcementId,
+                    student_id: studentId,
+                    read_at: new Date().toISOString()
+                })
+                    .select()
+                    .single();
+                if (error) {
+                    // Ignore duplicate key errors (already read)
+                    if (error.code === '23505')
+                        return { alreadyRead: true };
+                    throw error;
+                }
+                return data;
+            },
+            async getAnnouncementReads(studentId) {
+                const { data, error } = await client
+                    .from('announcement_reads')
+                    .select('announcement_id, read_at')
+                    .eq('student_id', studentId);
+                if (error)
+                    throw error;
+                return data || [];
+            },
+            async getUnreadAnnouncementsCount(studentId) {
+                // Get all announcements student has access to
+                const { data: announcements, error: annError } = await client
+                    .from('announcements')
+                    .select('id, target_audience, target_student_ids');
+                if (annError)
+                    throw annError;
+                // Get all announcements student has read
+                const { data: reads, error: readError } = await client
+                    .from('announcement_reads')
+                    .select('announcement_id')
+                    .eq('student_id', studentId);
+                if (readError)
+                    throw readError;
+                const readIds = new Set((reads || []).map((r) => r.announcement_id));
+                // Count unread announcements student has access to
+                let count = 0;
+                for (const announcement of (announcements || [])) {
+                    // Check if student has access
+                    const hasAccess = announcement.target_audience === 'all' ||
+                        (announcement.target_audience === 'specific' &&
+                            announcement.target_student_ids &&
+                            announcement.target_student_ids.includes(studentId));
+                    if (hasAccess && !readIds.has(announcement.id)) {
+                        count++;
+                    }
+                }
+                return count;
             }
         };
     }

@@ -4,6 +4,7 @@ import { ReactNode, useState } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
+import AnnouncementComponent from "../../components/AnnouncementComponent";
 import {
   Box,
   Drawer,
@@ -20,6 +21,13 @@ import {
   Divider,
   Button,
   Chip,
+  Badge,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Alert,
 } from "@mui/material";
 import {
   Dashboard,
@@ -30,6 +38,7 @@ import {
   Assessment,
   Logout,
   Menu as MenuIcon,
+  Lock,
 } from "@mui/icons-material";
 import { ThemeProvider } from "../../components/theme";
 
@@ -49,6 +58,13 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [unreadAnnouncements, setUnreadAnnouncements] = useState(0);
 
   const isQuizPage = pathname === "/student/quiz" || pathname?.startsWith("/student/quiz");
 
@@ -63,12 +79,64 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
   }
 
   if (status === "unauthenticated" || session?.user?.role !== "STUDENT") {
-    router.push("/login");
+    router.push("/");
     return null;
   }
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: "/" });
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordError("");
+    
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError("All fields are required");
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords do not match");
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters");
+      return;
+    }
+    
+    setPasswordLoading(true);
+    
+    try {
+      const token = (session?.user as any)?.accessToken;
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/students/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+      
+      if (res.ok) {
+        setChangePasswordOpen(false);
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setPasswordError("Password changed successfully!");
+        setTimeout(() => setPasswordError(""), 3000);
+      } else {
+        const error = await res.json();
+        setPasswordError(error.message || "Failed to change password");
+      }
+    } catch (error) {
+      setPasswordError("An error occurred. Please try again.");
+    } finally {
+      setPasswordLoading(false);
+    }
   };
 
   const handleDrawerToggle = () => {
@@ -135,6 +203,11 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
                     fontSize: "0.95rem",
                   }}
                 />
+                {item.path === "/student" && unreadAnnouncements > 0 && (
+                  <Badge badgeContent={unreadAnnouncements} color="error" sx={{ ml: 1 }}>
+                    <Box />
+                  </Badge>
+                )}
                 {isActive && (
                   <Chip
                     size="small"
@@ -155,6 +228,20 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
       </List>
 
       <Divider sx={{ mx: 2 }} />
+
+      {/* Change Password */}
+      <Box sx={{ p: 2 }}>
+        <Button
+          fullWidth
+          variant="outlined"
+          color="primary"
+          startIcon={<Lock />}
+          onClick={() => setChangePasswordOpen(true)}
+          sx={{ justifyContent: "flex-start", py: 1.2 }}
+        >
+          Change Password
+        </Button>
+      </Box>
 
       {/* Logout */}
       <Box sx={{ p: 2 }}>
@@ -270,6 +357,52 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
           {children}
         </Box>
       </Box>
+      
+      {/* Change Password Dialog */}
+      <Dialog open={changePasswordOpen} onClose={() => setChangePasswordOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Change Password</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <TextField
+              label="Current Password"
+              type="password"
+              fullWidth
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              margin="normal"
+            />
+            <TextField
+              label="New Password"
+              type="password"
+              fullWidth
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              margin="normal"
+            />
+            <TextField
+              label="Confirm New Password"
+              type="password"
+              fullWidth
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              margin="normal"
+            />
+            {passwordError && (
+              <Alert severity={passwordError.includes("successfully") ? "success" : "error"} sx={{ mt: 2 }}>
+                {passwordError}
+              </Alert>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setChangePasswordOpen(false)} disabled={passwordLoading}>
+            Cancel
+          </Button>
+          <Button onClick={handleChangePassword} disabled={passwordLoading} variant="contained" color="primary">
+            {passwordLoading ? 'Changing...' : 'Change Password'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </ThemeProvider>
   );
 }

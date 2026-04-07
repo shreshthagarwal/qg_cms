@@ -61,7 +61,7 @@ router.post('/login', async (req, res) => {
             console.log('Login failed: Invalid password for user:', user.id);
             return res.status(400).json({ error: 'Invalid email or password.' });
         }
-        const token = jsonwebtoken_1.default.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '1d' });
+        const token = jsonwebtoken_1.default.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || 'fallback_secret', { expiresIn: '1d' });
         res.json({ token, role: user.role, userId: user.id });
     }
     catch (error) {

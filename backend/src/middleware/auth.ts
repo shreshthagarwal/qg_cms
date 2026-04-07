@@ -17,7 +17,8 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as { id: string, role: string };
+    const jwtSecret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || 'fallback_secret';
+    const decoded = jwt.verify(token, jwtSecret) as { id: string, role: string };
     req.user = decoded;
     console.log('Auth success:', decoded.id, decoded.role);
     next();

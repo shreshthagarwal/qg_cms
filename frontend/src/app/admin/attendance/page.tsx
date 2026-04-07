@@ -445,10 +445,10 @@ export default function AdminAttendancePage() {
 
         {/* Main Content Area */}
         {viewMode === "calendar" ? (
-          <Grid container spacing={3}>
-            {/* Left: Calendar */}
-            <Grid size={{ xs: 12, lg: 7 }}>
-              <Card sx={{ borderRadius: 3, boxShadow: 2, height: "100%" }}>
+          <Grid container spacing={3} direction="column">
+            {/* Top: Calendar */}
+            <Grid size={{ xs: 12 }}>
+              <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
                 <CardContent>
                   {/* Calendar Header */}
                   <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
@@ -582,9 +582,9 @@ export default function AdminAttendancePage() {
             </Card>
           </Grid>
 
-          {/* Right: Selected Date Detail */}
-          <Grid size={{ xs: 12, lg: 5 }}>
-            <Card sx={{ borderRadius: 3, boxShadow: 2, height: "100%" }}>
+          {/* Bottom: Selected Date Detail */}
+          <Grid size={{ xs: 12 }}>
+            <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
               <CardContent>
                 {selectedDate ? (
                   <>
