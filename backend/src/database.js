@@ -1763,6 +1763,7 @@ function getDb() {
                 return data;
             },
             async getAllAnnouncements() {
+                // Fetch announcements without join to avoid FK issues
                 const { data, error } = await client
                     .from('announcements')
                     .select('*')

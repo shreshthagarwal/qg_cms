@@ -41,10 +41,10 @@ interface Announcement {
   target_student_ids: string[] | null;
   created_at: string;
   created_by: string;
-  creator: {
-    first_name: string;
-    last_name: string;
-    email: string;
+  creator?: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
   };
 }
 
@@ -277,7 +277,7 @@ export default function AnnouncementsPage() {
                         </Box>
 
                         <Typography variant="caption" color="text.secondary">
-                          By {announcement.creator.first_name} {announcement.creator.last_name}
+                          By {announcement.creator?.first_name || 'Admin'} {announcement.creator?.last_name || ''}
                         </Typography>
                       </Paper>
                     ))}

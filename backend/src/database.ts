@@ -2001,9 +2001,10 @@ export function getDb() {
       },
 
       async getAllAnnouncements() {
+        // Fetch announcements without join to avoid FK issues
         const { data, error } = await client
           .from('announcements')
-          .select('*, creator:created_by(first_name, last_name, email)')
+          .select('*')
           .order('created_at', { ascending: false });
         
         if (error) throw error;

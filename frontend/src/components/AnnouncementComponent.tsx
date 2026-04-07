@@ -36,9 +36,9 @@ interface Announcement {
   target_student_ids: string[] | null;
   created_at: string;
   created_by: string;
-  creator: {
-    first_name: string;
-    last_name: string;
+  creator?: {
+    first_name?: string;
+    last_name?: string;
   };
   announcement_reads: Array<{
     read_at: string | null;
@@ -248,10 +248,10 @@ export default function AnnouncementComponent({ onUnreadCountChange }: Announcem
                     <Box display="flex" alignItems="center" justifyContent="space-between">
                       <Box display="flex" alignItems="center" gap={1}>
                         <Avatar sx={{ width: 20, height: 20, fontSize: "0.7rem" }}>
-                          {announcement.creator.first_name[0]}
+                          {announcement.creator?.first_name?.[0] || 'A'}
                         </Avatar>
                         <Typography variant="caption" color="text.secondary">
-                          {announcement.creator.first_name} {announcement.creator.last_name}
+                          {announcement.creator?.first_name || 'Admin'} {announcement.creator?.last_name || ''}
                         </Typography>
                       </Box>
 
