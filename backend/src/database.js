@@ -118,6 +118,16 @@ function getDb() {
                     throw error;
                 return data;
             },
+            async findLeadById(id) {
+                const { data, error } = await client
+                    .from('leads')
+                    .select('*')
+                    .eq('id', id)
+                    .single();
+                if (error)
+                    throw error;
+                return data;
+            },
             // Student Profiles
             async createStudentProfile(profileData) {
                 const { data, error } = await client
@@ -1653,14 +1663,31 @@ function getDb() {
             },
             // User management methods
             async findStudentById(id) {
-                const { data, error } = await client
+                // First get user data
+                const { data: user, error: userError } = await client
                     .from('users')
                     .select('*')
                     .eq('id', id)
                     .single();
-                if (error)
-                    throw error;
-                return data;
+                if (userError)
+                    throw userError;
+                if (!user)
+                    return null;
+                // Then get student profile
+                const { data: profile, error: profileError } = await client
+                    .from('student_profiles')
+                    .select('*')
+                    .or(`user_id.eq.${id},userid.eq.${id}`)
+                    .single();
+                if (profileError && profileError.code !== 'PGRST116') {
+                    // PGRST116 is "not found" error, which is acceptable
+                    throw profileError;
+                }
+                // Return combined data
+                return {
+                    ...user,
+                    student_profiles: profile || null
+                };
             },
             async updateUser(id, updateData) {
                 const { data, error } = await client
@@ -1685,6 +1712,23 @@ function getDb() {
                 return data;
             },
             async deleteUser(id) {
+                // First try to delete by userid (correct field)
+                const { error: profileError } = await client
+                    .from('student_profiles')
+                    .delete()
+                    .eq('userid', id);
+                if (profileError) {
+                    console.error('Error deleting student profile by userid:', profileError);
+                    // If userid deletion fails, try user_id (legacy field)
+                    const { error: legacyProfileError } = await client
+                        .from('student_profiles')
+                        .delete()
+                        .eq('user_id', id);
+                    if (legacyProfileError) {
+                        console.error('Error deleting student profile by user_id:', legacyProfileError);
+                    }
+                }
+                // Then delete the user
                 const { error } = await client
                     .from('users')
                     .delete()

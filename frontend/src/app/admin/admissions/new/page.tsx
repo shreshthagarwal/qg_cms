@@ -73,9 +73,6 @@ interface FormData {
   tenthMarksheetUrl: string;
   twelfthMarksheetUrl: string;
   currentCollege: string;
-  collegeAddress: string;
-  collegeCity: string;
-  collegeState: string;
   cgpa: string;
   collegeMarksheetUrl: string;
   graduatingYear: string;
@@ -107,7 +104,7 @@ export default function NewAdmissionPage() {
     
     // Educational Details
     tenthPercentage: "", twelfthPercentage: "", tenthMarksheetUrl: "", twelfthMarksheetUrl: "",
-    currentCollege: "", collegeAddress: "", collegeCity: "", collegeState: "",
+    currentCollege: "",
     cgpa: "", collegeMarksheetUrl: "", graduatingYear: "",
     
     // Course Details
@@ -253,9 +250,6 @@ export default function NewAdmissionPage() {
       18: { key: 'twelfthPercentage', label: 'Percentage in 12th' },
       19: { key: 'twelfthMarksheetUrl', label: '12th Marksheet URL' },
       20: { key: 'currentCollege', label: 'College Name' },
-      21: { key: 'collegeAddress', label: 'College Address' },
-      22: { key: 'collegeCity', label: 'College City' },
-      23: { key: 'collegeState', label: 'College State' },
       24: { key: 'cgpa', label: 'CGPA' },
       25: { key: 'collegeMarksheetUrl', label: 'Marksheet URL' },
       26: { key: 'graduatingYear', label: 'Graduating Year' },
@@ -339,9 +333,6 @@ export default function NewAdmissionPage() {
         tenthMarksheetUrl: formData.tenthMarksheetUrl,
         twelfthMarksheetUrl: formData.twelfthMarksheetUrl,
         currentCollege: formData.currentCollege,
-        collegeAddress: formData.collegeAddress,
-        collegeCity: formData.collegeCity,
-        collegeState: formData.collegeState,
         cgpa: formData.cgpa ? parseFloat(formData.cgpa) : null,
         collegeMarksheetUrl: formData.collegeMarksheetUrl,
         graduatingYear: formData.graduatingYear ? parseInt(formData.graduatingYear) : null,
@@ -747,18 +738,6 @@ export default function NewAdmissionPage() {
                       <Typography variant="body1">{reviewFormData.currentCollege}</Typography>
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
-                      <Typography variant="body2" color="text.secondary">College Address:</Typography>
-                      <Typography variant="body1">{reviewFormData.collegeAddress}</Typography>
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <Typography variant="body2" color="text.secondary">College City:</Typography>
-                      <Typography variant="body1">{reviewFormData.collegeCity}</Typography>
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <Typography variant="body2" color="text.secondary">College State:</Typography>
-                      <Typography variant="body1">{reviewFormData.collegeState}</Typography>
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
                       <Typography variant="body2" color="text.secondary">CGPA:</Typography>
                       <Typography variant="body1">{reviewFormData.cgpa}</Typography>
                     </Grid>
@@ -1148,33 +1127,6 @@ export default function NewAdmissionPage() {
                     label="Current College Name"
                     name="currentCollege"
                     value={formData.currentCollege}
-                    onChange={handleChange}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                  <TextField
-                    fullWidth
-                    label="College Address"
-                    name="collegeAddress"
-                    value={formData.collegeAddress}
-                    onChange={handleChange}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                  <TextField
-                    fullWidth
-                    label="College City"
-                    name="collegeCity"
-                    value={formData.collegeCity}
-                    onChange={handleChange}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                  <TextField
-                    fullWidth
-                    label="College State"
-                    name="collegeState"
-                    value={formData.collegeState}
                     onChange={handleChange}
                   />
                 </Grid>

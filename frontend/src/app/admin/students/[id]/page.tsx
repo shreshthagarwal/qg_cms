@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -14,8 +14,6 @@ import {
   TextField,
   Divider,
   Chip,
-  IconButton,
-  Tooltip,
   LinearProgress,
   Dialog,
   DialogTitle,
@@ -39,7 +37,6 @@ import {
   School,
   LocationOn,
   MenuBook,
-  AttachMoney,
   Description,
 } from "@mui/icons-material";
 import { ThemeProvider } from "../../../../components/theme";
@@ -96,7 +93,7 @@ export default function StudentDetailPage() {
   const router = useRouter();
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
-  
+
   const [student, setStudent] = useState<Student | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -106,43 +103,69 @@ export default function StudentDetailPage() {
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
 
+  const fetchStudent = useCallback(
+    async (studentId: string) => {
+      try {
+        const token = (session?.user as any)?.accessToken;
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/students`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch student");
+
+        const data = await res.json();
+        const foundStudent = data.find((s: Student) => s.id === studentId);
+        if (foundStudent) {
+          setStudent(foundStudent);
+          setEditForm({ ...foundStudent });
+        } else {
+          setError("Student not found");
+        }
+      } catch (err) {
+        setError("Error loading student");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [session]
+  );
+
   useEffect(() => {
     if (params.id) {
       fetchStudent(params.id as string);
     }
-  }, [params.id]);
+  }, [params.id, fetchStudent]);
+
+  const handleResetPassword = useCallback(async () => {
+    try {
+      const token = (session?.user as any)?.accessToken;
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/students/${student?.id}/reset-password`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        setNewPassword(data.password || "Password reset successful");
+      } else {
+        alert("Error resetting password");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error resetting password");
+    }
+  }, [session, student?.id]);
 
   // Auto-reset password when dialog opens
   useEffect(() => {
     if (resetPasswordDialogOpen && !newPassword) {
       handleResetPassword();
     }
-  }, [resetPasswordDialogOpen]);
-
-  const fetchStudent = async (studentId: string) => {
-    try {
-      const token = (session?.user as any)?.accessToken;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/students`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!res.ok) throw new Error("Failed to fetch student");
-      
-      const data = await res.json();
-      const foundStudent = data.find((s: Student) => s.id === studentId);
-      if (foundStudent) {
-        setStudent(foundStudent);
-        setEditForm({ ...foundStudent });
-      } else {
-        setError("Student not found");
-      }
-    } catch (err) {
-      setError("Error loading student");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [resetPasswordDialogOpen, newPassword, handleResetPassword]);
 
   const handleEdit = () => {
     setEditing(true);
@@ -152,55 +175,50 @@ export default function StudentDetailPage() {
   const handleSave = async () => {
     try {
       const token = (session?.user as any)?.accessToken;
-      console.log("Updating student with ID:", student?.id);
-      console.log("Update data:", editForm);
-      
-      // Create proper update payload - separate top-level and profile fields
+
       const updateData: any = {};
-      
-      // Add top-level fields
+
       if (editForm.firstname !== student?.firstname) updateData.firstname = editForm.firstname;
       if (editForm.lastname !== student?.lastname) updateData.lastname = editForm.lastname;
       if (editForm.email !== student?.email) updateData.email = editForm.email;
       if (editForm.phone !== student?.phone) updateData.phone = editForm.phone;
-      
-      // Add student_profiles fields if they changed
+
       const profileUpdates: any = {};
       if (editForm.student_profiles && student?.student_profiles) {
-        // Define the keys we want to check
         const profileKeys: (keyof typeof student.student_profiles)[] = [
-          'coursename', 'role', 'durationmonths', 'totalfees', 'paidfees', 
-          'startdate', 'enddate', 'dob', 'emergencycontact', 'addressline1',
-          'addressline2', 'city', 'state', 'pincode', 'pannumber', 'pancardurl',
-          'aadhaarnumber', 'aadhaarcardurl', 'photourl', 'tenthpercentage',
-          'tenthmarksheeturl', 'twelfthpercentage', 'twelfthmarksheeturl',
-          'currentcollege', 'cgpa', 'collegemarksheeturl', 'graduatingyear'
+          "coursename", "role", "durationmonths", "totalfees", "paidfees",
+          "startdate", "enddate", "dob", "emergencycontact", "addressline1",
+          "addressline2", "city", "state", "pincode", "pannumber", "pancardurl",
+          "aadhaarnumber", "aadhaarcardurl", "photourl", "tenthpercentage",
+          "tenthmarksheeturl", "twelfthpercentage", "twelfthmarksheeturl",
+          "currentcollege", "cgpa", "collegemarksheeturl", "graduatingyear",
         ];
-        
-        profileKeys.forEach(key => {
-          if (editForm.student_profiles![key] !== student.student_profiles[key]) {
+
+        profileKeys.forEach((key) => {
+          if (editForm.student_profiles![key] !== student.student_profiles![key]) {
             profileUpdates[key] = editForm.student_profiles![key];
           }
         });
       }
-      
+
       if (Object.keys(profileUpdates).length > 0) {
         updateData.student_profiles = {
           ...student?.student_profiles,
-          ...profileUpdates
+          ...profileUpdates,
         };
       }
-      
-      console.log("Final update payload:", updateData);
-      
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/students/${student?.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(updateData),
-      });
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/students/${student?.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(updateData),
+        }
+      );
 
       if (res.ok) {
         setStudent({ ...student!, ...editForm });
@@ -225,10 +243,13 @@ export default function StudentDetailPage() {
   const handleDelete = async () => {
     try {
       const token = (session?.user as any)?.accessToken;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/students/${student?.id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/students/${student?.id}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       if (res.ok) {
         setDeleteDialogOpen(false);
@@ -242,28 +263,8 @@ export default function StudentDetailPage() {
     }
   };
 
-  const handleResetPassword = async () => {
-    try {
-      const token = (session?.user as any)?.accessToken;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/students/${student?.id}/reset-password`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setNewPassword(data.password || "Password reset successful");
-      } else {
-        alert("Error resetting password");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Error resetting password");
-    }
-  };
-
   const downloadFile = (url: string, filename: string) => {
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
     link.download = filename;
     document.body.appendChild(link);
@@ -280,8 +281,8 @@ export default function StudentDetailPage() {
       ...editForm,
       student_profiles: {
         ...editForm.student_profiles,
-        [field]: value
-      }
+        [field]: value,
+      },
     });
   };
 
@@ -304,7 +305,7 @@ export default function StudentDetailPage() {
     );
   }
 
-  const profile = student.student_profiles;
+  const profile = student.student_profiles!;
   const feeProgress = profile.totalfees > 0 ? (profile.paidfees / profile.totalfees) * 100 : 0;
 
   const cardBg = isDark ? "#1e293b" : "#ffffff";
@@ -321,8 +322,14 @@ export default function StudentDetailPage() {
           <TextField
             fullWidth
             size="small"
-            value={isProfile ? editForm.student_profiles?.[field] || '' : editForm[field] || ''}
-            onChange={(e) => isProfile ? handleProfileChange(field, e.target.value) : handleInputChange(field, e.target.value)}
+            value={
+              isProfile ? editForm.student_profiles?.[field] ?? "" : editForm[field] ?? ""
+            }
+            onChange={(e) =>
+              isProfile
+                ? handleProfileChange(field, e.target.value)
+                : handleInputChange(field, e.target.value)
+            }
             sx={{ mt: 0.5 }}
           />
         </Box>
@@ -344,7 +351,13 @@ export default function StudentDetailPage() {
     <Box sx={{ p: 3, maxWidth: 1400, mx: "auto" }}>
       {/* Header */}
       <Paper elevation={0} sx={{ p: 3, mb: 3, bgcolor: cardBg, borderRadius: 2 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" gap={2}>
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="flex-start"
+          flexWrap="wrap"
+          gap={2}
+        >
           <Box display="flex" gap={2} alignItems="center">
             <Avatar sx={{ width: 64, height: 64, bgcolor: "primary.main" }}>
               <Person sx={{ fontSize: 32 }} />
@@ -362,11 +375,16 @@ export default function StudentDetailPage() {
               </Stack>
             </Box>
           </Box>
-          
+
           <Stack direction="row" spacing={1}>
             {editing ? (
               <>
-                <Button variant="contained" color="success" startIcon={<Save />} onClick={handleSave}>
+                <Button
+                  variant="contained"
+                  color="success"
+                  startIcon={<Save />}
+                  onClick={handleSave}
+                >
                   Save
                 </Button>
                 <Button variant="outlined" startIcon={<Cancel />} onClick={handleCancel}>
@@ -378,13 +396,27 @@ export default function StudentDetailPage() {
                 <Button variant="contained" startIcon={<Edit />} onClick={handleEdit}>
                   Edit
                 </Button>
-                <Button variant="outlined" color="error" startIcon={<Delete />} onClick={() => setDeleteDialogOpen(true)}>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<Delete />}
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
                   Delete
                 </Button>
-                <Button variant="outlined" startIcon={<LockReset />} onClick={() => setResetPasswordDialogOpen(true)}>
+                <Button
+                  variant="outlined"
+                  startIcon={<LockReset />}
+                  onClick={() => setResetPasswordDialogOpen(true)}
+                >
                   Reset Password
                 </Button>
-                <Button component={Link} href="/admin/students" variant="outlined" startIcon={<ArrowBack />}>
+                <Button
+                  component={Link}
+                  href="/admin/students"
+                  variant="outlined"
+                  startIcon={<ArrowBack />}
+                >
                   Back
                 </Button>
               </>
@@ -405,12 +437,16 @@ export default function StudentDetailPage() {
                 </Typography>
               </Box>
               <Divider sx={{ mb: 2 }} />
-              
               {renderField("First Name", student.firstname, "firstname")}
               {renderField("Last Name", student.lastname, "lastname")}
               {renderField("Email", student.email, "email")}
               {renderField("Phone", student.phone, "phone")}
-              {renderField("Date of Birth", profile.dob ? new Date(profile.dob).toLocaleDateString() : "Not provided", "dob", true)}
+              {renderField(
+                "Date of Birth",
+                profile.dob ? new Date(profile.dob).toLocaleDateString() : "Not provided",
+                "dob",
+                true
+              )}
               {renderField("Emergency Contact", profile.emergencycontact, "emergencycontact", true)}
             </CardContent>
           </Card>
@@ -427,23 +463,33 @@ export default function StudentDetailPage() {
                 </Typography>
               </Box>
               <Divider sx={{ mb: 2 }} />
-              
               {renderField("Course Name", profile.coursename, "coursename", true)}
               {renderField("Role", profile.role, "role", true)}
               {renderField("Duration", `${profile.durationmonths} months`, "durationmonths", true)}
-              {renderField("Start Date", new Date(profile.startdate).toLocaleDateString(), "startdate", true)}
-              {renderField("End Date", profile.enddate ? new Date(profile.enddate).toLocaleDateString() : "Not set", "enddate", true)}
-              
+              {renderField(
+                "Start Date",
+                new Date(profile.startdate).toLocaleDateString(),
+                "startdate",
+                true
+              )}
+              {renderField(
+                "End Date",
+                profile.enddate ? new Date(profile.enddate).toLocaleDateString() : "Not set",
+                "enddate",
+                true
+              )}
+
               <Box mt={3}>
                 <Typography variant="caption" color={subtitleColor} fontWeight={500}>
                   Fees Status
                 </Typography>
                 <Typography variant="body1" color={textColor}>
-                  ₹{profile.paidfees?.toLocaleString('en-IN')} of ₹{profile.totalfees?.toLocaleString('en-IN')}
+                  ₹{profile.paidfees?.toLocaleString("en-IN")} of ₹
+                  {profile.totalfees?.toLocaleString("en-IN")}
                 </Typography>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={feeProgress} 
+                <LinearProgress
+                  variant="determinate"
+                  value={feeProgress}
                   sx={{ mt: 1, height: 8, borderRadius: 4 }}
                 />
                 <Typography variant="caption" color={subtitleColor}>
@@ -465,39 +511,65 @@ export default function StudentDetailPage() {
                 </Typography>
               </Box>
               <Divider sx={{ mb: 2 }} />
-              
+
               <Box mt={2}>
                 <Typography variant="caption" color={subtitleColor} fontWeight={500}>
                   Available Documents
                 </Typography>
                 <Stack spacing={1} mt={1}>
                   {profile.photourl && (
-                    <Button size="small" startIcon={<Download />} onClick={() => downloadFile(profile.photourl, "photo")}>
+                    <Button
+                      size="small"
+                      startIcon={<Download />}
+                      onClick={() => downloadFile(profile.photourl, "photo")}
+                    >
                       Download Photo
                     </Button>
                   )}
                   {profile.pancardurl && (
-                    <Button size="small" startIcon={<Download />} onClick={() => downloadFile(profile.pancardurl, "pan_card")}>
+                    <Button
+                      size="small"
+                      startIcon={<Download />}
+                      onClick={() => downloadFile(profile.pancardurl, "pan_card")}
+                    >
                       Download PAN Card
                     </Button>
                   )}
                   {profile.aadhaarcardurl && (
-                    <Button size="small" startIcon={<Download />} onClick={() => downloadFile(profile.aadhaarcardurl, "aadhaar_card")}>
+                    <Button
+                      size="small"
+                      startIcon={<Download />}
+                      onClick={() => downloadFile(profile.aadhaarcardurl, "aadhaar_card")}
+                    >
                       Download Aadhaar Card
                     </Button>
                   )}
                   {profile.tenthmarksheeturl && (
-                    <Button size="small" startIcon={<Download />} onClick={() => downloadFile(profile.tenthmarksheeturl, "10th_marksheet")}>
+                    <Button
+                      size="small"
+                      startIcon={<Download />}
+                      onClick={() => downloadFile(profile.tenthmarksheeturl, "10th_marksheet")}
+                    >
                       Download 10th Marksheet
                     </Button>
                   )}
                   {profile.twelfthmarksheeturl && (
-                    <Button size="small" startIcon={<Download />} onClick={() => downloadFile(profile.twelfthmarksheeturl, "12th_marksheet")}>
+                    <Button
+                      size="small"
+                      startIcon={<Download />}
+                      onClick={() => downloadFile(profile.twelfthmarksheeturl, "12th_marksheet")}
+                    >
                       Download 12th Marksheet
                     </Button>
                   )}
                   {profile.collegemarksheeturl && (
-                    <Button size="small" startIcon={<Download />} onClick={() => downloadFile(profile.collegemarksheeturl, "college_marksheet")}>
+                    <Button
+                      size="small"
+                      startIcon={<Download />}
+                      onClick={() =>
+                        downloadFile(profile.collegemarksheeturl, "college_marksheet")
+                      }
+                    >
                       Download College Marksheets
                     </Button>
                   )}
@@ -507,7 +579,7 @@ export default function StudentDetailPage() {
           </Card>
         </Grid>
 
-      {/* Address */}
+        {/* Address */}
         <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ bgcolor: cardBg }}>
             <CardContent>
@@ -518,8 +590,15 @@ export default function StudentDetailPage() {
                 </Typography>
               </Box>
               <Divider sx={{ mb: 2 }} />
-              
-              {renderField("Current College", profile.currentcollege, "currentcollege", true)}
+              {renderField("Address Line 1", profile.addressline1, "addressline1", true)}
+              {renderField("Address Line 2", profile.addressline2, "addressline2", true)}
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  {renderField("City", profile.city, "city", true)}
+                </Grid>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  {renderField("State", profile.state, "state", true)}
+                </Grid>
                 <Grid size={{ xs: 12, sm: 4 }}>
                   {renderField("Pincode", profile.pincode, "pincode", true)}
                 </Grid>
@@ -539,24 +618,42 @@ export default function StudentDetailPage() {
                 </Typography>
               </Box>
               <Divider sx={{ mb: 2 }} />
-                            <Grid container spacing={2}>
-                  <Grid size={{ xs: 12, sm: 4 }}>
-                    {renderField("12th Percentage", `${profile.twelfthpercentage}%`, "twelfthpercentage", true)}
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 4 }}>
-                    {renderField("Graduating Year", profile.graduatingyear, "graduatingyear", true)}
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 4 }}>
-                    {renderField("PAN Number", profile.pannumber, "pannumber", true)}
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 4 }}>
-                    {renderField("Aadhaar Number", profile.aadhaarnumber, "aadhaarnumber", true)}
-                  </Grid>
+              {renderField("Current College", profile.currentcollege, "currentcollege", true)}
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  {renderField(
+                    "10th Percentage",
+                    profile.tenthpercentage != null ? `${profile.tenthpercentage}%` : null,
+                    "tenthpercentage",
+                    true
+                  )}
+                </Grid>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  {renderField(
+                    "12th Percentage",
+                    profile.twelfthpercentage != null ? `${profile.twelfthpercentage}%` : null,
+                    "twelfthpercentage",
+                    true
+                  )}
+                </Grid>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  {renderField(
+                    "CGPA",
+                    profile.cgpa != null ? profile.cgpa : null,
+                    "cgpa",
+                    true
+                  )}
+                </Grid>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  {renderField("Graduating Year", profile.graduatingyear, "graduatingyear", true)}
+                </Grid>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  {renderField("PAN Number", profile.pannumber, "pannumber", true)}
+                </Grid>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  {renderField("Aadhaar Number", profile.aadhaarnumber, "aadhaarnumber", true)}
+                </Grid>
               </Grid>
-              </Grid>
-              {renderField("Graduating Year", profile.graduatingyear, "graduatingyear", true)}
-              {renderField("PAN Number", profile.pannumber, "pannumber", true)}
-              {renderField("Aadhaar Number", profile.aadhaarnumber, "aadhaarnumber", true)}
             </CardContent>
           </Card>
         </Grid>
@@ -567,7 +664,11 @@ export default function StudentDetailPage() {
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete <strong>{student.firstname} {student.lastname}</strong>? This action cannot be undone.
+            Are you sure you want to delete{" "}
+            <strong>
+              {student.firstname} {student.lastname}
+            </strong>
+            ? This action cannot be undone.
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -579,9 +680,12 @@ export default function StudentDetailPage() {
       </Dialog>
 
       {/* Reset Password Dialog */}
-      <Dialog 
-        open={resetPasswordDialogOpen} 
-        onClose={() => { setResetPasswordDialogOpen(false); setNewPassword(""); }}
+      <Dialog
+        open={resetPasswordDialogOpen}
+        onClose={() => {
+          setResetPasswordDialogOpen(false);
+          setNewPassword("");
+        }}
         maxWidth="sm"
         fullWidth
       >
@@ -592,28 +696,27 @@ export default function StudentDetailPage() {
               <Alert severity="success" sx={{ mb: 3 }}>
                 Password reset successful! Copy and share these credentials with {student.firstname}.
               </Alert>
-              
-              {/* Email */}
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block" }}>
                 Email
               </Typography>
-              <Box 
-                sx={{ 
-                  p: 2, 
+              <Box
+                sx={{
+                  p: 2,
                   mb: 2,
-                  bgcolor: 'grey.100', 
-                  borderRadius: 2, 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  gap: 2
+                  bgcolor: "grey.100",
+                  borderRadius: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 2,
                 }}
               >
                 <Typography fontFamily="monospace" fontSize="1rem" fontWeight={600}>
                   {student.email}
                 </Typography>
-                <Button 
-                  size="small" 
+                <Button
+                  size="small"
                   variant="outlined"
                   onClick={() => navigator.clipboard.writeText(student.email)}
                 >
@@ -621,26 +724,25 @@ export default function StudentDetailPage() {
                 </Button>
               </Box>
 
-              {/* Password */}
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block" }}>
                 New Password
               </Typography>
-              <Box 
-                sx={{ 
-                  p: 2, 
-                  bgcolor: 'grey.100', 
-                  borderRadius: 2, 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  gap: 2
+              <Box
+                sx={{
+                  p: 2,
+                  bgcolor: "grey.100",
+                  borderRadius: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 2,
                 }}
               >
                 <Typography fontFamily="monospace" fontSize="1rem" fontWeight={600}>
                   {newPassword}
                 </Typography>
-                <Button 
-                  size="small" 
+                <Button
+                  size="small"
                   variant="outlined"
                   onClick={() => navigator.clipboard.writeText(newPassword)}
                 >
@@ -656,7 +758,12 @@ export default function StudentDetailPage() {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => { setResetPasswordDialogOpen(false); setNewPassword(""); }}>
+          <Button
+            onClick={() => {
+              setResetPasswordDialogOpen(false);
+              setNewPassword("");
+            }}
+          >
             {newPassword ? "Done" : "Cancel"}
           </Button>
         </DialogActions>
