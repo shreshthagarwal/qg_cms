@@ -59,13 +59,103 @@ router.post('/:id/contacted', async (req, res) => {
 router.post('/:id/convert', async (req, res) => {
   try {
     const { id } = req.params;
+    const { 
+      password, courseName, role, durationMonths, totalFees, paidFees, 
+      startDate, endDate,
+      // Personal Details
+      dob, emergencyContact, addressLine1, addressLine2, 
+      city, state, pincode, panNumber, panCardUrl, 
+      aadhaarNumber, aadhaarCardUrl, photoUrl,
+      // Educational Details
+      tenthPercentage, twelfthPercentage, tenthMarksheetUrl, 
+      twelfthMarksheetUrl, currentCollege, collegeAddress, 
+      collegeCity, collegeState, cgpa, collegeMarksheetUrl, 
+      graduatingYear 
+    } = req.body;
+    
     const db = getDb();
     
-    // Update lead status to CONVERTED and move to archive
-    const lead = await db.updateLeadStatus(id, 'CONVERTED');
+    // First get the lead details
+    const lead = await db.findLeadById(id);
+    if (!lead) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
     
-    res.json({ message: 'Lead converted to student successfully', lead });
+    // Convert empty strings to null for optional fields
+    const cleanPhone = lead.phone || null;
+    const cleanEmergencyContact = emergencyContact || null;
+    
+    // Hash password
+    const bcrypt = require('bcryptjs');
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Calculate end date if not provided
+    const calculatedEndDate = endDate || new Date(new Date(startDate).setMonth(new Date(startDate).getMonth() + durationMonths));
+    
+    // Create user first
+    const newUser = await db.createUser({
+      email: lead.email,
+      password: hashedPassword,
+      firstname: lead.firstname,
+      lastname: lead.lastname,
+      phone: cleanPhone,
+      role: 'STUDENT'
+    });
+    
+    // Create student profile with correct field names
+    const studentProfile = await db.createStudentProfile({
+      userid: newUser.id,        // Use correct field name: userid
+      coursename: courseName,      // Use correct field name: coursename
+      durationmonths: durationMonths, // Use correct field name: durationmonths
+      totalfees: totalFees,        // Use correct field name: totalfees
+      paidfees: paidFees,          // Use correct field name: paidfees
+      startdate: new Date(startDate),  // Use correct field name: startdate
+      enddate: calculatedEndDate,      // Use correct field name: enddate
+      
+      // Personal Details
+      firstname: lead.firstname,         // Use correct field name: firstname
+      lastname: lead.lastname,           // Use correct field name: lastname
+      dob: dob ? new Date(dob) : null,
+      phone: lead.phone,               // Use phone from lead
+      emergencycontact: cleanEmergencyContact, // Use correct field name: emergencycontact
+      addressline1: addressLine1,     // Use correct field name: addressline1
+      addressline2: addressLine2,     // Use correct field name: addressline2
+      city: city,
+      state: state,
+      pincode: pincode,
+      pannumber: panNumber,           // Use correct field name: pannumber
+      aadhaarnumber: aadhaarNumber,    // Use correct field name: aadhaarnumber
+      pancardurl: panCardUrl,          // Use correct field name: pancardurl
+      aadhaarcardurl: aadhaarCardUrl,   // Use correct field name: aadhaarcardurl
+      photourl: photoUrl,              // Use correct field name: photourl
+      
+      // Educational Details
+      tenthpercentage: tenthPercentage,   // Use correct field name: tenthpercentage
+      twelfthpercentage: twelfthPercentage, // Use correct field name: twelfthpercentage
+      tenthmarksheeturl: tenthMarksheetUrl,   // Use correct field name: tenthmarksheeturl
+      twelfthmarksheeturl: twelfthMarksheetUrl, // Use correct field name: twelfthmarksheeturl
+      currentcollege: currentCollege,     // Use correct field name: currentcollege
+      collegeaddress: collegeAddress,     // Use correct field name: collegeaddress
+      collegecity: collegeCity,          // Use correct field name: collegecity
+      collegestate: collegeState,        // Use correct field name: collegestate
+      cgpa,
+      collegemarksheeturl: collegeMarksheetUrl, // Use correct field name: collegemarksheeturl
+      graduatingyear: graduatingYear,    // Use correct field name: graduatingyear
+      
+      // Course Details
+      role: role || 'Student'
+    });
+    
+    // Update lead status to CONVERTED
+    const updatedLead = await db.updateLeadStatus(id, 'CONVERTED');
+    
+    res.status(201).json({ 
+      message: 'Lead converted to student successfully', 
+      lead: updatedLead, 
+      student: { ...newUser, studentProfile } 
+    });
   } catch (error) {
+    console.error('Error converting lead to student:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

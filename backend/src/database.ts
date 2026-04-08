@@ -131,6 +131,17 @@ export function getDb() {
         return data;
       },
 
+      async findLeadById(id: string) {
+        const { data, error } = await client
+          .from('leads')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (error) throw error;
+        return data;
+      },
+
       // Student Profiles
       async createStudentProfile(profileData: any) {
         const { data, error } = await client
@@ -1876,14 +1887,33 @@ export function getDb() {
 
       // User management methods
       async findStudentById(id: string) {
-        const { data, error } = await client
+        // First get user data
+        const { data: user, error: userError } = await client
           .from('users')
           .select('*')
           .eq('id', id)
           .single();
         
-        if (error) throw error;
-        return data;
+        if (userError) throw userError;
+        if (!user) return null;
+        
+        // Then get student profile
+        const { data: profile, error: profileError } = await client
+          .from('student_profiles')
+          .select('*')
+          .or(`user_id.eq.${id},userid.eq.${id}`)
+          .single();
+        
+        if (profileError && profileError.code !== 'PGRST116') {
+          // PGRST116 is "not found" error, which is acceptable
+          throw profileError;
+        }
+        
+        // Return combined data
+        return {
+          ...user,
+          student_profiles: profile || null
+        };
       },
 
       async updateUser(id: string, updateData: any) {

@@ -58,43 +58,44 @@ router.post('/', authenticate, authorizeAdmin, async (req, res) => {
 
     // Create student profile
     const studentProfile = await db.createStudentProfile({
-      user_id: newUser.id,        // Changed from userid to user_id
-      course_name: courseName,    // Changed from coursename to course_name
-      duration_months: durationMonths, // Changed from durationmonths to duration_months
-      total_fees: totalFees,      // Changed from totalfees to total_fees
-      paid_fees: paidFees,        // Changed from paidfees to paid_fees
-      start_date: new Date(startDate),
-      end_date: calculatedEndDate,
+      userid: newUser.id,        // Use correct field name: userid (not user_id)
+      coursename: courseName,      // Use correct field name: coursename
+      durationmonths: durationMonths, // Use correct field name: durationmonths
+      totalfees: totalFees,        // Use correct field name: totalfees
+      paidfees: paidFees,          // Use correct field name: paidfees
+      startdate: new Date(startDate),  // Use correct field name: startdate
+      enddate: calculatedEndDate,      // Use correct field name: enddate
       
       // Personal Details
-      first_name: firstName,       // Changed from firstname to first_name
-      last_name: lastName,         // Changed from lastname to last_name
+      firstname: firstName,           // Use correct field name: firstname
+      lastname: lastName,             // Use correct field name: lastname
       dob: dob ? new Date(dob) : null,
-      phone: phone,                // Added missing phone field
-      emergency_contact: cleanEmergencyContact, // Changed from emergencycontact
-      address_line1: addressLine1, // Changed from addressline1
-      address_line2: addressLine2, // Changed from addressline2
+      phone: phone,                  // Added missing phone field
+      emergencycontact: cleanEmergencyContact, // Use correct field name: emergencycontact
+      addressline1: addressLine1,     // Use correct field name: addressline1
+      addressline2: addressLine2,     // Use correct field name: addressline2
       city: city,
       state: state,
       pincode: pincode,
-      pan_number: panNumber,       // Changed from pannumber
-      aadhaar_number: aadhaarNumber, // Changed from aadhaarnumber
-      pan_card_url: panCardUrl,      // Changed from pancardurl
-      aadhaar_card_url: aadhaarCardUrl, // Changed from aadhaarcardurl
-      photo_url: photoUrl,           // Changed from photourl
+      pannumber: panNumber,           // Use correct field name: pannumber
+      aadhaarnumber: aadhaarNumber,    // Use correct field name: aadhaarnumber
+      pancardurl: panCardUrl,          // Use correct field name: pancardurl
+      aadhaarcardurl: aadhaarCardUrl,   // Use correct field name: aadhaarcardurl
+      photourl: photoUrl,              // Use correct field name: photourl
       
       // Educational Details
-      tenth_percentage: tenthPercentage, // Changed from tenthpercentage
-      twelfth_percentage: twelfthPercentage, // Changed from twelfthpercentage
-      tenth_marksheet_url: tenthMarksheetUrl, // Changed from tenthmarksheeturl
-      twelfth_marksheet_url: twelfthMarksheetUrl, // Changed from twelfthmarksheeturl
-      current_college: currentCollege,
-      college_address: collegeAddress,
-      college_city: collegeCity,
-      college_state: collegeState,
+      tenthpercentage: tenthPercentage,   // Use correct field name: tenthpercentage
+      twelfthpercentage: twelfthPercentage, // Use correct field name: twelfthpercentage
+      tenthmarksheeturl: tenthMarksheetUrl,   // Use correct field name: tenthmarksheeturl
+      twelfthmarksheeturl: twelfthMarksheetUrl, // Use correct field name: twelfthmarksheeturl
+      currentcollege: currentCollege,     // Use correct field name: currentcollege
+      collegeaddress: collegeAddress,     // Use correct field name: collegeaddress
+      collegecity: collegeCity,          // Use correct field name: collegecity
+      collegestate: collegeState,        // Use correct field name: collegestate
       cgpa,
-      college_marksheet_url: collegeMarksheetUrl, // Changed from collegemarksheeturl
-      graduating_year: graduatingYear, // Changed from graduatingyear
+      collegemarksheeturl: collegeMarksheetUrl, // Use correct field name: collegemarksheeturl
+      graduatingyear: graduatingYear,    // Use correct field name: graduatingyear
+      
       // Course Details
       role: role || 'Student'
     });
