@@ -1941,6 +1941,18 @@ export function getDb() {
       },
 
       async deleteUser(id: string) {
+        // First delete student profile (handle both possible field names)
+        const { error: profileError } = await client
+          .from('student_profiles')
+          .delete()
+          .or(`userid.eq.${id},user_id.eq.${id}`);
+        
+        if (profileError) {
+          console.error('Error deleting student profile:', profileError);
+          // Continue with user deletion even if profile deletion fails
+        }
+        
+        // Then delete the user
         const { error } = await client
           .from('users')
           .delete()
