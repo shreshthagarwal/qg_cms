@@ -57,18 +57,54 @@ router.get('/submissions/:id/details', authenticate, async (req: AuthRequest, re
   try {
     const submissionId = req.params.id;
     const userId = req.user?.id;
-    const userRole = req.user?.role;
+    const isAdmin = req.user?.role === 'ADMIN';
+    
     const db = getDb();
     
-    const submissionDetails = await db.getQuizSubmissionDetails(submissionId, userId, userRole);
+    // Get submission
+    const submission = await db.getQuizSubmissionById(submissionId);
     
-    if (!submissionDetails) {
+    if (!submission) {
       return res.status(404).json({ error: 'Submission not found' });
     }
     
+    // Check authorization (admin or the student who submitted)
+    if (!isAdmin && submission.studentId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    // Get quiz questions with correct answers
+    const questions = await db.getQuizQuestions(submission.quizId);
+    
+    // Build response with user answers and correct answers
+    const detailedAnswers = questions.map((q: any, index: number) => {
+      const userAnswer = Array.isArray(submission.answers) ? submission.answers[index] : undefined;
+      
+      return {
+        questionId: index.toString(),
+        question: q.question,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        userAnswer: userAnswer,
+        isCorrect: parseInt(userAnswer) === parseInt(q.correctAnswer)
+      };
+    });
+    
     res.json({
-      submission: submissionDetails.submission,
-      answers: submissionDetails.answers
+      submission: {
+        id: submission.id,
+        quizId: submission.quizId,
+        quizTitle: submission.quizTitle,
+        studentId: submission.studentId,
+        studentName: submission.studentName,
+        studentEmail: submission.studentEmail,
+        score: submission.score,
+        submittedAt: submission.submittedAt,
+        windowSwitches: submission.windowSwitches,
+        cheatingFlagged: submission.cheatingFlagged,
+        timeTaken: submission.timeTaken,
+      },
+      answers: detailedAnswers
     });
   } catch (error) {
     console.error('Error getting submission details:', error);
