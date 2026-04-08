@@ -250,9 +250,9 @@ export default function NewAdmissionPage() {
       18: { key: 'twelfthPercentage', label: 'Percentage in 12th' },
       19: { key: 'twelfthMarksheetUrl', label: '12th Marksheet URL' },
       20: { key: 'currentCollege', label: 'College Name' },
-      24: { key: 'cgpa', label: 'CGPA' },
-      25: { key: 'collegeMarksheetUrl', label: 'Marksheet URL' },
-      26: { key: 'graduatingYear', label: 'Graduating Year' },
+      21: { key: 'cgpa', label: 'CGPA' },
+      22: { key: 'collegeMarksheetUrl', label: 'Marksheet URL' },
+      23: { key: 'graduatingYear', label: 'Graduating Year' },
     };
     
     const newFormData = { ...formData };
