@@ -270,23 +270,6 @@ router.delete('/:id', authenticate, authorizeAdmin, async (req: AuthRequest, res
   } catch (error: any) {
     console.error('Error deleting student:', error);
     
-    // Handle specific database constraint errors
-    if (error.code === '42703') {
-      // Foreign key constraint violation
-      if (error.message?.includes('user_id')) {
-        return res.status(400).json({ 
-          error: 'Database constraint error', 
-          details: 'Student profile has incorrect field structure. Please run database migration script.',
-          suggestion: 'Run fix-student-profiles.sql migration script first'
-        });
-      }
-      return res.status(400).json({ 
-        error: 'Database constraint error', 
-        details: 'Cannot delete student due to existing dependencies',
-        suggestion: 'Check for related records before deletion'
-      });
-    }
-    
     // Generic error response
     res.status(500).json({ 
       error: 'Internal server error', 

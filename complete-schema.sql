@@ -26,9 +26,11 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- Student Profiles table - Extended student information
+-- Note: No college address fields (collegeaddress, collegecity, collegestate) - removed for cleaner data model
+-- Note: No legacy user_id column - uses only userid field
 CREATE TABLE IF NOT EXISTS student_profiles (
   id TEXT PRIMARY KEY,  -- Changed from UUID to TEXT
-  userid TEXT UNIQUE NOT NULL REFERENCES users(id),  -- Primary foreign key
+  userid TEXT UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,  -- Primary foreign key with CASCADE delete
   
   -- Course Information
   coursename TEXT NOT NULL,  -- Changed from course_name to coursename

@@ -1941,24 +1941,15 @@ export function getDb() {
       },
 
       async deleteUser(id: string) {
-        // First try to delete by userid (correct field)
+        // Delete student profile by userid
         const { error: profileError } = await client
           .from('student_profiles')
           .delete()
           .eq('userid', id);
         
         if (profileError) {
-          console.error('Error deleting student profile by userid:', profileError);
-          
-          // If userid deletion fails, try user_id (legacy field)
-          const { error: legacyProfileError } = await client
-            .from('student_profiles')
-            .delete()
-            .eq('user_id', id);
-          
-          if (legacyProfileError) {
-            console.error('Error deleting student profile by user_id:', legacyProfileError);
-          }
+          console.error('Error deleting student profile:', profileError);
+          throw profileError;
         }
         
         // Then delete the user
