@@ -76,7 +76,7 @@ export function getDb() {
         return students.map(student => ({
           ...student,
           student_profiles: profiles.find(profile => 
-            (profile.user_id === student.id) || (profile.userid === student.id)
+            profile.userid === student.id
           ) || null
         }));
       },
@@ -1901,7 +1901,7 @@ export function getDb() {
         const { data: profile, error: profileError } = await client
           .from('student_profiles')
           .select('*')
-          .or(`user_id.eq.${id},userid.eq.${id}`)
+          .eq('userid', id)
           .single();
         
         if (profileError && profileError.code !== 'PGRST116') {
