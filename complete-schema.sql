@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS users (
 -- Student Profiles table - Extended student information
 CREATE TABLE IF NOT EXISTS student_profiles (
   id TEXT PRIMARY KEY,  -- Changed from UUID to TEXT
-  userid TEXT UNIQUE NOT NULL REFERENCES users(id),  -- Only userid exists, no user_id
+  userid TEXT UNIQUE NOT NULL REFERENCES users(id),  -- Primary foreign key
+  user_id TEXT,  -- Legacy field for compatibility (no constraint)
   
   -- Course Information
   coursename TEXT NOT NULL,  -- Changed from course_name to coursename
@@ -61,13 +62,10 @@ CREATE TABLE IF NOT EXISTS student_profiles (
   tenthmarksheeturl TEXT,  -- Changed from tenth_marksheet_url to tenthmarksheeturl
   twelfthpercentage REAL,  -- Changed from twelfth_percentage to twelfthpercentage
   twelfthmarksheeturl TEXT,  -- Changed from twelfth_marksheet_url to twelfthmarksheeturl
-  currentcollege TEXT,  -- Changed from current_college to currentcollege
-  collegeaddress TEXT,  -- Changed from college_address to collegeaddress
-  collegecity TEXT,  -- Changed from college_city to collegecity
-  collegestate TEXT,  -- Changed from college_state to collegestate
+  currentcollege TEXT,     -- Changed from current_college to currentcollege
   cgpa REAL,
-  collegemarksheeturl TEXT,  -- Changed from college_marksheet_url to collegemarksheeturl
-  graduatingyear INTEGER,  -- Changed from graduating_year to graduatingyear
+  collegemarksheeturl TEXT, -- Changed from college_marksheet_url to collegemarksheeturl
+  graduatingyear INTEGER,    -- Changed from graduating_year to graduatingyear
   
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   -- Note: updated_at column is missing in actual database

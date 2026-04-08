@@ -19,8 +19,7 @@ router.post('/', authenticate, authorizeAdmin, async (req, res) => {
       aadhaarNumber, aadhaarCardUrl, photoUrl,
       // Educational Details
       tenthPercentage, twelfthPercentage, tenthMarksheetUrl, 
-      twelfthMarksheetUrl, currentCollege, collegeAddress, 
-      collegeCity, collegeState, cgpa, collegeMarksheetUrl, 
+      twelfthMarksheetUrl, currentCollege, cgpa, collegeMarksheetUrl, 
       graduatingYear,
       leadId 
     } = req.body;
@@ -89,9 +88,6 @@ router.post('/', authenticate, authorizeAdmin, async (req, res) => {
       tenthmarksheeturl: tenthMarksheetUrl,   // Use correct field name: tenthmarksheeturl
       twelfthmarksheeturl: twelfthMarksheetUrl, // Use correct field name: twelfthmarksheeturl
       currentcollege: currentCollege,     // Use correct field name: currentcollege
-      collegeaddress: collegeAddress,     // Use correct field name: collegeaddress
-      collegecity: collegeCity,          // Use correct field name: collegecity
-      collegestate: collegeState,        // Use correct field name: collegestate
       cgpa,
       collegemarksheeturl: collegeMarksheetUrl, // Use correct field name: collegemarksheeturl
       graduatingyear: graduatingYear,    // Use correct field name: graduatingyear
@@ -273,7 +269,30 @@ router.delete('/:id', authenticate, authorizeAdmin, async (req: AuthRequest, res
     res.json({ message: 'Student deleted successfully' });
   } catch (error: any) {
     console.error('Error deleting student:', error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    
+    // Handle specific database constraint errors
+    if (error.code === '42703') {
+      // Foreign key constraint violation
+      if (error.message?.includes('user_id')) {
+        return res.status(400).json({ 
+          error: 'Database constraint error', 
+          details: 'Student profile has incorrect field structure. Please run database migration script.',
+          suggestion: 'Run fix-student-profiles.sql migration script first'
+        });
+      }
+      return res.status(400).json({ 
+        error: 'Database constraint error', 
+        details: 'Cannot delete student due to existing dependencies',
+        suggestion: 'Check for related records before deletion'
+      });
+    }
+    
+    // Generic error response
+    res.status(500).json({ 
+      error: 'Internal server error', 
+      details: error.message || 'Unknown error occurred',
+      code: error.code 
+    });
   }
 });
 

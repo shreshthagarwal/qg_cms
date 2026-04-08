@@ -50,8 +50,13 @@ interface Student {
   firstname: string;
   lastname: string;
   email: string;
-  phone: string | null;
-  student_profiles: {
+  phone: string;
+  role: string;
+  created_at: string;
+  updated_at?: string;
+  student_profiles?: {
+    id: string;
+    userid: string;
     coursename: string;
     role: string;
     durationmonths: number;
@@ -59,8 +64,11 @@ interface Student {
     paidfees: number;
     startdate: string;
     enddate: string;
-    dob: string | null;
-    emergencycontact: string | null;
+    firstname: string;
+    lastname: string;
+    dob: string;
+    phone: string;
+    emergencycontact: string;
     addressline1: string;
     addressline2: string;
     city: string;
@@ -72,13 +80,10 @@ interface Student {
     aadhaarcardurl: string;
     photourl: string;
     tenthpercentage: number;
-    tenthmarksheeturl: string;
     twelfthpercentage: number;
+    tenthmarksheeturl: string;
     twelfthmarksheeturl: string;
     currentcollege: string;
-    collegeaddress: string;
-    collegecity: string;
-    collegestate: string;
     cgpa: number;
     collegemarksheeturl: string;
     graduatingyear: number;
@@ -169,8 +174,7 @@ export default function StudentDetailPage() {
           'addressline2', 'city', 'state', 'pincode', 'pannumber', 'pancardurl',
           'aadhaarnumber', 'aadhaarcardurl', 'photourl', 'tenthpercentage',
           'tenthmarksheeturl', 'twelfthpercentage', 'twelfthmarksheeturl',
-          'currentcollege', 'collegeaddress', 'collegecity', 'collegestate',
-          'cgpa', 'collegemarksheeturl', 'graduatingyear'
+          'currentcollege', 'cgpa', 'collegemarksheeturl', 'graduatingyear'
         ];
         
         profileKeys.forEach(key => {
@@ -515,15 +519,7 @@ export default function StudentDetailPage() {
               </Box>
               <Divider sx={{ mb: 2 }} />
               
-              {renderField("Address Line 1", profile.addressline1, "addressline1", true)}
-              {renderField("Address Line 2", profile.addressline2, "addressline2", true)}
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, sm: 4 }}>
-                  {renderField("City", profile.city, "city", true)}
-                </Grid>
-                <Grid size={{ xs: 12, sm: 4 }}>
-                  {renderField("State", profile.state, "state", true)}
-                </Grid>
+              {renderField("Current College", profile.currentcollege, "currentcollege", true)}
                 <Grid size={{ xs: 12, sm: 4 }}>
                   {renderField("Pincode", profile.pincode, "pincode", true)}
                 </Grid>
@@ -543,27 +539,20 @@ export default function StudentDetailPage() {
                 </Typography>
               </Box>
               <Divider sx={{ mb: 2 }} />
-              
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  {renderField("10th Percentage", `${profile.tenthpercentage}%`, "tenthpercentage", true)}
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  {renderField("12th Percentage", `${profile.twelfthpercentage}%`, "twelfthpercentage", true)}
-                </Grid>
+                            <Grid container spacing={2}>
+                  <Grid size={{ xs: 12, sm: 4 }}>
+                    {renderField("12th Percentage", `${profile.twelfthpercentage}%`, "twelfthpercentage", true)}
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 4 }}>
+                    {renderField("Graduating Year", profile.graduatingyear, "graduatingyear", true)}
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 4 }}>
+                    {renderField("PAN Number", profile.pannumber, "pannumber", true)}
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 4 }}>
+                    {renderField("Aadhaar Number", profile.aadhaarnumber, "aadhaarnumber", true)}
+                  </Grid>
               </Grid>
-              {renderField("Current College", profile.currentcollege, "currentcollege", true)}
-              {renderField("College Address", profile.collegeaddress, "collegeaddress", true)}
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, sm: 4 }}>
-                  {renderField("College City", profile.collegecity, "collegecity", true)}
-                </Grid>
-                <Grid size={{ xs: 12, sm: 4 }}>
-                  {renderField("College State", profile.collegestate, "collegestate", true)}
-                </Grid>
-                <Grid size={{ xs: 12, sm: 4 }}>
-                  {renderField("CGPA", profile.cgpa, "cgpa", true)}
-                </Grid>
               </Grid>
               {renderField("Graduating Year", profile.graduatingyear, "graduatingyear", true)}
               {renderField("PAN Number", profile.pannumber, "pannumber", true)}

@@ -253,6 +253,7 @@ export default function StudentsPage() {
 
   const handleDeleteStudent = async () => {
     if (!selectedStudent) return;
+    
     try {
       const token = (session?.user as any)?.accessToken;
       const res = await fetch(
@@ -262,13 +263,35 @@ export default function StudentsPage() {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+      
       if (res.ok) {
         setDeleteDialogOpen(false);
         setSelectedStudent(null);
         fetchStudents();
+        // Show success message
+        alert("Student deleted successfully");
+      } else {
+        // Handle HTTP errors
+        const errorData = await res.json().catch(() => ({}));
+        const errorMessage = errorData.error || 'Failed to delete student';
+        const errorDetails = errorData.details || '';
+        const errorSuggestion = errorData.suggestion || '';
+        
+        let fullErrorMessage = errorMessage;
+        if (errorDetails) {
+          fullErrorMessage += `\n\nDetails: ${errorDetails}`;
+        }
+        if (errorSuggestion) {
+          fullErrorMessage += `\n\nSuggestion: ${errorSuggestion}`;
+        }
+        
+        alert(`Error: ${fullErrorMessage}`);
+        console.error("Error deleting student:", errorData);
       }
     } catch (err) {
-      console.error("Error deleting student:", err);
+      // Handle network errors
+      console.error("Network error deleting student:", err);
+      alert("Network error: Failed to delete student. Please check your connection and try again.");
     }
   };
 

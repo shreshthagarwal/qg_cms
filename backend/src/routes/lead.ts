@@ -135,9 +135,6 @@ router.post('/:id/convert', async (req, res) => {
       tenthmarksheeturl: tenthMarksheetUrl,   // Use correct field name: tenthmarksheeturl
       twelfthmarksheeturl: twelfthMarksheetUrl, // Use correct field name: twelfthmarksheeturl
       currentcollege: currentCollege,     // Use correct field name: currentcollege
-      collegeaddress: collegeAddress,     // Use correct field name: collegeaddress
-      collegecity: collegeCity,          // Use correct field name: collegecity
-      collegestate: collegeState,        // Use correct field name: collegestate
       cgpa,
       collegemarksheeturl: collegeMarksheetUrl, // Use correct field name: collegemarksheeturl
       graduatingyear: graduatingYear,    // Use correct field name: graduatingyear
