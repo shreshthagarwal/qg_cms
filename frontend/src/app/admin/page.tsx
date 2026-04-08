@@ -497,10 +497,10 @@ export default function AdminDashboard() {
                       fullWidth
                       variant="outlined"
                       startIcon={<AttachMoney />}
-                      onClick={() => router.push("/admin/trading")}
+                      onClick={() => router.push("/admin/lms")}
                       sx={{ justifyContent: "flex-start", py: 1.5 }}
                     >
-                      View Trading Reports
+                      Manage LMS
                     </Button>
                   </Grid>
                   <Grid size={{ xs: 6 }}>

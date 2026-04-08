@@ -39,6 +39,43 @@ router.get('/:id/assignments', authenticate, authorizeAdmin, async (req: AuthReq
   }
 });
 
+// Admin: Delete quiz submission
+router.delete('/submissions/:id', authenticate, authorizeAdmin, async (req: AuthRequest, res) => {
+  try {
+    const submissionId = req.params.id;
+    const db = getDb();
+    await db.deleteQuizSubmission(submissionId);
+    res.json({ message: 'Submission deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting submission:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get quiz submission details with answers (for admin and student review)
+router.get('/submissions/:id/details', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const submissionId = req.params.id;
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+    const db = getDb();
+    
+    const submissionDetails = await db.getQuizSubmissionDetails(submissionId, userId, userRole);
+    
+    if (!submissionDetails) {
+      return res.status(404).json({ error: 'Submission not found' });
+    }
+    
+    res.json({
+      submission: submissionDetails.submission,
+      answers: submissionDetails.answers
+    });
+  } catch (error) {
+    console.error('Error getting submission details:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Admin: Delete quiz (with cascade delete)
 router.delete('/:id', authenticate, authorizeAdmin, async (req: AuthRequest, res) => {
   try {
@@ -166,19 +203,6 @@ router.get('/submitted', authenticate, authorizeAdmin, async (req: AuthRequest, 
     const submittedQuizzes = await db.findSubmittedQuizzes();
     res.json(submittedQuizzes);
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Admin: Delete quiz submission
-router.delete('/submissions/:id', authenticate, authorizeAdmin, async (req: AuthRequest, res) => {
-  try {
-    const submissionId = req.params.id;
-    const db = getDb();
-    await db.deleteQuizSubmission(submissionId);
-    res.json({ message: 'Submission deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting submission:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -361,69 +385,5 @@ router.post('/:id/submit', authenticate, async (req: AuthRequest, res) => {
   }
 });
 
-// Get quiz submission details with answers (for admin and student review)
-router.get('/submissions/:id/details', authenticate, async (req: AuthRequest, res) => {
-  try {
-    const submissionId = req.params.id;
-    const userId = req.user?.id;
-    const isAdmin = req.user?.role === 'ADMIN';
-    
-    const db = getDb();
-    
-    // Get submission
-    const submission = await db.getQuizSubmissionById(submissionId);
-    
-    console.log('Retrieved submission from database:', submission);
-    console.log('Submission answers:', submission?.answers, 'Type:', typeof submission?.answers, 'Is array:', Array.isArray(submission?.answers));
-    console.log('Submission answers keys:', submission?.answers ? Object.keys(submission.answers) : 'No answers');
-    
-    if (!submission) {
-      return res.status(404).json({ error: 'Submission not found' });
-    }
-    
-    // Check authorization (admin or the student who submitted)
-    if (!isAdmin && submission.studentId !== userId) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-    
-    // Get quiz questions with correct answers
-    const questions = await db.getQuizQuestions(submission.quizId);
-    
-    // Build response with user answers and correct answers
-    const detailedAnswers = questions.map((q: any, index: number) => {
-      const userAnswer = Array.isArray(submission.answers) ? submission.answers[index] : undefined;
-      
-      console.log(`Question ${index} in details: userAnswer=${userAnswer} (type: ${typeof userAnswer}), correctAnswer=${q.correctAnswer} (type: ${typeof q.correctAnswer}), isCorrect=${userAnswer === q.correctAnswer}`);
-      
-      return {
-        questionId: index.toString(),
-        question: q.question,
-        options: q.options,
-        correctAnswer: q.correctAnswer,
-        userAnswer: userAnswer,
-        isCorrect: parseInt(userAnswer) === parseInt(q.correctAnswer)
-      };
-    });
-    
-    res.json({
-      submission: {
-        id: submission.id,
-        quizId: submission.quizId,
-        quizTitle: submission.quizTitle,
-        studentId: submission.studentId,
-        studentName: submission.studentName,
-        score: submission.score,
-        submittedAt: submission.submittedAt,
-        windowSwitches: submission.windowSwitches,
-        cheatingFlagged: submission.cheatingFlagged,
-        timeTaken: submission.timeTaken,
-      },
-      answers: detailedAnswers
-    });
-  } catch (error) {
-    console.error('Error getting submission details:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
 
 export default router;
